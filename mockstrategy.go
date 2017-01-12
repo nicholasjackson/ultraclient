@@ -2,9 +2,15 @@ package loadbalancer
 
 import (
 	"net/url"
+	"reflect"
 
 	"github.com/stretchr/testify/mock"
 )
+
+// GetEndpoint is a function that can be passed as a return parameter to the
+// On call for NextEndpoint, this can be used to control which url
+// is returned in your tests
+type GetEndpoint func() url.URL
 
 // MockStrategy is a mocked implementation of the Strategy interface for testing
 // Usage:
@@ -19,6 +25,12 @@ type MockStrategy struct {
 // NextEndpoint returns the next endpoint in the list
 func (m *MockStrategy) NextEndpoint() url.URL {
 	args := m.Called()
+
+	arg := args.Get(0)
+	if reflect.TypeOf(arg).Kind() == reflect.Func {
+		return arg.(GetEndpoint)()
+	}
+
 	return args.Get(0).(url.URL)
 }
 

@@ -24,7 +24,10 @@ func (r *RandomStrategy) SetEndpoints(endpoints []url.URL) {
 	r.endpoints = endpoints
 }
 
-// LoadBalancer is returns endpoints for downstream calls
-type LoadBalancer struct {
-	strategy Strategy
+func (r *RandomStrategy) GetEndpoints() []url.URL {
+	return r.endpoints
+}
+
+func (r *RandomStrategy) Lenght() int {
+	return len(r.endpoints)
 }

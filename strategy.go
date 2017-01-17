@@ -1,10 +1,19 @@
 package loadbalancer
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
-// Strategy is an interface to be implemented by loadbalancing
+// LoadBalancingStrategy is an interface to be implemented by loadbalancing
 // strategies like round robin or random.
-type Strategy interface {
+type LoadbalancingStrategy interface {
 	NextEndpoint() url.URL
 	SetEndpoints([]url.URL)
+	GetEndpoints() []url.URL
+	Length() int
+}
+
+type BackoffStrategy interface {
+	Create(retries int, delay time.Duration) []time.Duration
 }

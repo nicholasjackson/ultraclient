@@ -12,18 +12,18 @@ import (
 // is returned in your tests
 type GetEndpoint func() url.URL
 
-// MockStrategy is a mocked implementation of the Strategy interface for testing
+// MockLoadbalancingStrategy is a mocked implementation of the Strategy interface for testing
 // Usage:
-// mock := MockStrategy{}
+// mock := MockLoadbalancingStrategy{}
 // mock.On("NextEndpoint").Returns([]url.URL{url.URL{Host: ""}})
 // mock.On("SetEndpoints", mock.Anything)
 // mock.AssertCalled(t, "NextEndpoint")
-type MockStrategy struct {
+type MockLoadbalancingStrategy struct {
 	mock.Mock
 }
 
 // NextEndpoint returns the next endpoint in the list
-func (m *MockStrategy) NextEndpoint() url.URL {
+func (m *MockLoadbalancingStrategy) NextEndpoint() url.URL {
 	args := m.Called()
 
 	arg := args.Get(0)
@@ -36,6 +36,16 @@ func (m *MockStrategy) NextEndpoint() url.URL {
 
 // SetEndpoints sets the mocks internal register with the given arguments,
 // this method can not be used to update the return values in NextEndpoint.
-func (m *MockStrategy) SetEndpoints(urls []url.URL) {
+func (m *MockLoadbalancingStrategy) SetEndpoints(urls []url.URL) {
 	m.Called(urls)
+}
+
+func (m *MockLoadbalancingStrategy) Length() int {
+	args := m.Called()
+	return args.Get(0).(int)
+}
+
+func (m *MockLoadbalancingStrategy) GetEndpoints() []url.URL {
+	args := m.Called()
+	return args.Get(0).([]url.URL)
 }

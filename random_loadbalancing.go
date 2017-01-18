@@ -28,6 +28,6 @@ func (r *RandomStrategy) GetEndpoints() []url.URL {
 	return r.endpoints
 }
 
-func (r *RandomStrategy) Lenght() int {
+func (r *RandomStrategy) Length() int {
 	return len(r.endpoints)
 }

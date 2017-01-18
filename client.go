@@ -2,10 +2,13 @@ package loadbalancer
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
 	"github.com/afex/hystrix-go/hystrix"
+	"github.com/afex/hystrix-go/hystrix/metric_collector"
+	"github.com/afex/hystrix-go/plugins"
 	"github.com/eapache/go-resiliency/retrier"
 )
 
@@ -39,6 +42,16 @@ type Config struct {
 	// Endpoints which are passed to the loadbalancing strategy and then to the
 	// work function.
 	Endpoints []url.URL
+
+	// Enable statsd metrixs for client
+	StatsD StatsD
+}
+
+// StatsD is the configuration for the StatsD endpoint
+type StatsD struct {
+	Enabled bool
+	Server  string
+	Prefix  string
 }
 
 // Client is a loadbalancing client with configurable backoff and loadbalancing strategy,
@@ -112,6 +125,12 @@ func NewClient(
 		backoffStrategy:       backoffStrategy,
 	}
 
+	if config.Retries < 1 {
+		client.config.Retries = loadbalancingStrategy.Length() - 1
+	}
+
+	loadbalancingStrategy.SetEndpoints(config.Endpoints)
+
 	for _, url := range loadbalancingStrategy.GetEndpoints() {
 		hystrix.ConfigureCommand(url.String(), hystrix.CommandConfig{
 			Timeout:                int(config.Timeout / time.Millisecond),
@@ -121,13 +140,19 @@ func NewClient(
 		})
 	}
 
-	if config.Retries < 1 {
-		client.config.Retries = loadbalancingStrategy.Length() - 1
-	}
-
-	loadbalancingStrategy.SetEndpoints(config.Endpoints)
-
 	client.retry = retrier.New(backoffStrategy.Create(config.Retries, config.RetryDelay), nil)
+
+	if config.StatsD.Enabled {
+		c, err := plugins.InitializeStatsdCollector(&plugins.StatsdCollectorConfig{
+			StatsdAddr: config.StatsD.Server,
+			Prefix:     config.StatsD.Prefix,
+		})
+		if err != nil {
+			log.Fatalf("could not initialize statsd client: %v", err)
+		}
+
+		metricCollector.Registry.Register(c.NewStatsdCollector)
+	}
 
 	return client
 }

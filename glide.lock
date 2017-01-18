@@ -1,5 +1,5 @@
-hash: 8bbd85db7d35a193f608f6e17e903ca4ac03e7d0c7b48931375846244f6f08c5
-updated: 2017-01-16T10:00:52.492174235Z
+hash: cbefd02932db22e0ccc0e65a9f0ad2d626a9ff8e6554bf661e7bad76c6a77a4e
+updated: 2017-01-18T14:44:12.076423811Z
 imports:
 - name: github.com/afex/hystrix-go
   version: 39520ddd07a9d9a071d615f7476798659f5a3b89
@@ -7,6 +7,15 @@ imports:
   - hystrix
   - hystrix/metric_collector
   - hystrix/rolling
+  - plugins
+- name: github.com/cactus/go-statsd-client
+  version: d8eabe07bc70ff9ba6a56836cde99d1ea3d005f7
+  subpackages:
+  - statsd
+- name: github.com/DataDog/datadog-go
+  version: 909c02b65dd8a52e8fa6072db9752a112227cf21
+  subpackages:
+  - statsd
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
@@ -19,6 +28,8 @@ imports:
   version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
   subpackages:
   - difflib
+- name: github.com/rcrowley/go-metrics
+  version: eeba7bd0dd01ace6e690fa833b3f22aaec29af43
 - name: github.com/stretchr/objx
   version: cbeaeb16a013161a98496fad62933b1d21786672
 - name: github.com/stretchr/testify

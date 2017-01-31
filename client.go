@@ -2,13 +2,10 @@ package loadbalancer
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"time"
 
 	"github.com/afex/hystrix-go/hystrix"
-	"github.com/afex/hystrix-go/hystrix/metric_collector"
-	"github.com/afex/hystrix-go/plugins"
 	"github.com/eapache/go-resiliency/retrier"
 )
 
@@ -52,6 +49,7 @@ type StatsD struct {
 	Enabled bool
 	Server  string
 	Prefix  string
+	Tags    []string
 }
 
 // Client is a loadbalancing client with configurable backoff and loadbalancing strategy,
@@ -61,6 +59,7 @@ type Client struct {
 	loadbalancingStrategy LoadbalancingStrategy
 	backoffStrategy       BackoffStrategy
 	retry                 *retrier.Retrier
+	statsCollection       []Stats
 }
 
 // Do perfoms the work for the client, the WorkFunc passed as a parameter
@@ -95,22 +94,61 @@ func (c *Client) Do(work WorkFunc) error {
 	return nil
 }
 
+// RegisterStats registers a stats interface with the client, multiple interfaces can
+// be registered with a single client
+func (c *Client) RegisterStats(stats Stats) {
+	c.statsCollection = append(c.statsCollection, stats)
+}
+
 func (c *Client) doRequest(work WorkFunc) error {
 	endpoint := c.loadbalancingStrategy.NextEndpoint()
+
+	c.incrementStats(&endpoint, StatsCalled)
+	startTime := time.Now()
+	defer c.timingStats(&endpoint, time.Now().Sub(startTime), StatsTiming)
 
 	err := hystrix.Do(endpoint.String(), func() error {
 		return work(endpoint)
 	}, nil)
 
+	return c.handleError(&endpoint, err)
+}
+
+func (c *Client) handleError(endpoint *url.URL, err error) error {
 	switch err {
 	case hystrix.ErrTimeout:
+		c.incrementStats(endpoint, StatsTimeout)
 		return fmt.Errorf(ErrorTimeout)
 	case hystrix.ErrCircuitOpen:
+		c.incrementStats(endpoint, StatsCircuitOpen)
 		return fmt.Errorf(ErrorCircuitOpen)
 	case nil:
+		c.incrementStats(endpoint, StatsSuccess)
 		return nil
 	default:
 		return err
+	}
+}
+
+func (c *Client) timingStats(endpoint *url.URL, duration time.Duration, action string) {
+	bucket := fmt.Sprintf("%v.%v.%v",
+		c.config.StatsD.Prefix,
+		PrettyPrintURL(endpoint),
+		action)
+
+	for _, stats := range c.statsCollection {
+		stats.Timing(bucket, c.config.StatsD.Tags, duration, 1)
+	}
+}
+
+func (c *Client) incrementStats(endpoint *url.URL, action string) {
+	bucket := fmt.Sprintf("%v.%v.%v",
+		c.config.StatsD.Prefix,
+		PrettyPrintURL(endpoint),
+		action)
+
+	for _, stats := range c.statsCollection {
+		stats.Increment(bucket, c.config.StatsD.Tags, 1)
 	}
 }
 
@@ -140,19 +178,9 @@ func NewClient(
 		})
 	}
 
-	client.retry = retrier.New(backoffStrategy.Create(config.Retries, config.RetryDelay), nil)
+	client.retry = retrier.New(backoffStrategy.Create(client.config.Retries, client.config.RetryDelay), nil)
 
-	if config.StatsD.Enabled {
-		c, err := plugins.InitializeStatsdCollector(&plugins.StatsdCollectorConfig{
-			StatsdAddr: config.StatsD.Server,
-			Prefix:     config.StatsD.Prefix,
-		})
-		if err != nil {
-			log.Fatalf("could not initialize statsd client: %v", err)
-		}
-
-		metricCollector.Registry.Register(c.NewStatsdCollector)
-	}
+	client.statsCollection = make([]Stats, 0)
 
 	return client
 }

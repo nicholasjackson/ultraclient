@@ -17,7 +17,7 @@ type DogStatsD struct {
 func NewDogStatsD(server url.URL) (*DogStatsD, error) {
 	var err error
 	c := &DogStatsD{}
-	c.client, err = statsd.New(server.String())
+	c.client, err = statsd.New(server.Host)
 
 	return c, err
 }

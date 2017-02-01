@@ -59,9 +59,8 @@ func setupClient(retryCount int) {
 			ErrorPercentThreshold:  50,
 			DefaultVolumeThreshold: 2,
 			StatsD: StatsD{
-				Enabled: true,
-				Prefix:  "myapp",
-				Tags:    []string{"production"},
+				Prefix: "myapp",
+				Tags:   []string{"production"},
 			},
 		},
 		&loadbalancingStrategy,
@@ -122,9 +121,10 @@ func TestClientCallIncrementsStats(t *testing.T) {
 		return nil
 	})
 
+	tags := append(client.config.StatsD.Tags, "something_3232")
 	mockStats.AssertCalled(t,
 		"Increment",
-		"myapp.something_3232.called", client.config.StatsD.Tags, mock.Anything)
+		"myapp.called", tags, mock.Anything)
 }
 
 func TestClientCallTimingStats(t *testing.T) {
@@ -133,9 +133,10 @@ func TestClientCallTimingStats(t *testing.T) {
 		return nil
 	})
 
+	tags := append(client.config.StatsD.Tags, "something_3232")
 	mockStats.AssertCalled(t,
 		"Timing",
-		"myapp.something_3232.timing", client.config.StatsD.Tags, mock.Anything, mock.Anything)
+		"myapp.timing", tags, mock.Anything, mock.Anything)
 }
 
 func TestClientRetriesWithDifferentURLAndReturnsError(t *testing.T) {
@@ -159,9 +160,10 @@ func TestSuccessIncrementsStats(t *testing.T) {
 		return nil
 	})
 
+	tags := append(client.config.StatsD.Tags, "something_3232")
 	mockStats.AssertCalled(t,
 		"Increment",
-		"myapp.something_3232.success", client.config.StatsD.Tags, mock.Anything)
+		"myapp.called", tags, mock.Anything)
 }
 
 func TestTimeoutReturnsError(t *testing.T) {
@@ -184,9 +186,10 @@ func TestTimeoutIncrementsStats(t *testing.T) {
 		return nil
 	})
 
+	tags := append(client.config.StatsD.Tags, "something_3232")
 	mockStats.AssertCalled(t,
 		"Increment",
-		"myapp.something_3232.timeout", client.config.StatsD.Tags, mock.Anything)
+		"myapp.timeout", tags, mock.Anything)
 }
 
 func TestOpenCircuitReturnsError(t *testing.T) {
@@ -211,7 +214,8 @@ func TestOpenCircuitIncrementsStats(t *testing.T) {
 		return nil
 	})
 
+	tags := append(client.config.StatsD.Tags, "something_3232")
 	mockStats.AssertCalled(t,
 		"Increment",
-		"myapp.something_3232.circuitopen", client.config.StatsD.Tags, mock.Anything)
+		"myapp.circuitopen", tags, mock.Anything)
 }

@@ -46,10 +46,8 @@ type Config struct {
 
 // StatsD is the configuration for the StatsD endpoint
 type StatsD struct {
-	Enabled bool
-	Server  string
-	Prefix  string
-	Tags    []string
+	Prefix string
+	Tags   []string
 }
 
 // Client is a loadbalancing client with configurable backoff and loadbalancing strategy,
@@ -104,8 +102,11 @@ func (c *Client) doRequest(work WorkFunc) error {
 	endpoint := c.loadbalancingStrategy.NextEndpoint()
 
 	c.incrementStats(&endpoint, StatsCalled)
+
 	startTime := time.Now()
-	defer c.timingStats(&endpoint, time.Now().Sub(startTime), StatsTiming)
+	defer func() {
+		c.timingStats(&endpoint, time.Now().Sub(startTime), StatsTiming)
+	}()
 
 	err := hystrix.Do(endpoint.String(), func() error {
 		return work(endpoint)
@@ -131,24 +132,24 @@ func (c *Client) handleError(endpoint *url.URL, err error) error {
 }
 
 func (c *Client) timingStats(endpoint *url.URL, duration time.Duration, action string) {
-	bucket := fmt.Sprintf("%v.%v.%v",
+	bucket := fmt.Sprintf("%v.%v",
 		c.config.StatsD.Prefix,
-		PrettyPrintURL(endpoint),
 		action)
 
+	tags := append(c.config.StatsD.Tags, PrettyPrintURL(endpoint))
 	for _, stats := range c.statsCollection {
-		stats.Timing(bucket, c.config.StatsD.Tags, duration, 1)
+		stats.Timing(bucket, tags, duration, 1)
 	}
 }
 
 func (c *Client) incrementStats(endpoint *url.URL, action string) {
-	bucket := fmt.Sprintf("%v.%v.%v",
+	bucket := fmt.Sprintf("%v.%v",
 		c.config.StatsD.Prefix,
-		PrettyPrintURL(endpoint),
 		action)
 
+	tags := append(c.config.StatsD.Tags, PrettyPrintURL(endpoint))
 	for _, stats := range c.statsCollection {
-		stats.Increment(bucket, c.config.StatsD.Tags, 1)
+		stats.Increment(bucket, tags, 1)
 	}
 }
 
@@ -163,11 +164,11 @@ func NewClient(
 		backoffStrategy:       backoffStrategy,
 	}
 
+	loadbalancingStrategy.SetEndpoints(config.Endpoints)
+
 	if config.Retries < 1 {
 		client.config.Retries = loadbalancingStrategy.Length() - 1
 	}
-
-	loadbalancingStrategy.SetEndpoints(config.Endpoints)
 
 	for _, url := range loadbalancingStrategy.GetEndpoints() {
 		hystrix.ConfigureCommand(url.String(), hystrix.CommandConfig{

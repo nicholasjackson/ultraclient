@@ -232,4 +232,9 @@ func TestCloneCreatesACloneOfTheClient(t *testing.T) {
 
 	assert.NotEqual(t, client, c)
 	loadbalancingStrategy.AssertCalled(t, "Clone")
+
+	assert.Equal(t, client.config, c.config)
+	assert.Equal(t, client.backoffStrategy, c.backoffStrategy)
+	assert.Equal(t, client.statsCollection, c.statsCollection)
+	assert.Equal(t, client.retry, c.retry)
 }

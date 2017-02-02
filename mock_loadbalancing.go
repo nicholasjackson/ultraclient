@@ -52,5 +52,5 @@ func (m *MockLoadbalancingStrategy) GetEndpoints() []url.URL {
 
 func (m *MockLoadbalancingStrategy) Clone() LoadbalancingStrategy {
 	m.Called()
-	return m
+	return &MockLoadbalancingStrategy{}
 }

@@ -150,6 +150,7 @@ func (c *Client) Clone() *Client {
 		loadbalancingStrategy: c.loadbalancingStrategy.Clone(),
 		backoffStrategy:       c.backoffStrategy,
 		statsCollection:       c.statsCollection,
+		retry:                 c.retry,
 	}
 
 }
@@ -159,16 +160,17 @@ func NewClient(
 	config Config,
 	loadbalancingStrategy LoadbalancingStrategy,
 	backoffStrategy BackoffStrategy) *Client {
-	client := &Client{
-		config:                config,
-		loadbalancingStrategy: loadbalancingStrategy,
-		backoffStrategy:       backoffStrategy,
-	}
 
 	loadbalancingStrategy.SetEndpoints(config.Endpoints)
 
 	if config.Retries < 1 {
-		client.config.Retries = loadbalancingStrategy.Length() - 1
+		config.Retries = loadbalancingStrategy.Length() - 1
+	}
+
+	client := &Client{
+		config:                config,
+		loadbalancingStrategy: loadbalancingStrategy,
+		backoffStrategy:       backoffStrategy,
 	}
 
 	for _, url := range loadbalancingStrategy.GetEndpoints() {

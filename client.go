@@ -74,22 +74,11 @@ type Client struct {
 //   return nil
 // }
 func (c *Client) Do(work WorkFunc) error {
-	var clientError ClientError
-
-	c.retry.Run(func() error {
-		if requestErr := c.doRequest(work); requestErr != nil {
-			clientError.AddError(requestErr)
-			return requestErr
-		}
-
-		return nil
+	err := c.retry.Run(func() error {
+		return c.doRequest(work)
 	})
 
-	if len(clientError.errors) > 0 {
-		return clientError
-	}
-
-	return nil
+	return err
 }
 
 // RegisterStats registers a stats interface with the client, multiple interfaces can
@@ -119,15 +108,15 @@ func (c *Client) handleError(endpoint *url.URL, err error) error {
 	switch err {
 	case hystrix.ErrTimeout:
 		c.incrementStats(endpoint, StatsTimeout)
-		return fmt.Errorf(ErrorTimeout)
+		return ClientError{ErrorTimeout, *endpoint}
 	case hystrix.ErrCircuitOpen:
 		c.incrementStats(endpoint, StatsCircuitOpen)
-		return fmt.Errorf(ErrorCircuitOpen)
+		return ClientError{ErrorCircuitOpen, *endpoint}
 	case nil:
 		c.incrementStats(endpoint, StatsSuccess)
 		return nil
 	default:
-		return err
+		return ClientError{err.Error(), *endpoint}
 	}
 }
 
@@ -136,7 +125,7 @@ func (c *Client) timingStats(endpoint *url.URL, duration time.Duration, action s
 		c.config.StatsD.Prefix,
 		action)
 
-	tags := append(c.config.StatsD.Tags, PrettyPrintURL(endpoint))
+	tags := append(c.config.StatsD.Tags, "server:"+PrettyPrintURL(endpoint))
 	for _, stats := range c.statsCollection {
 		stats.Timing(bucket, tags, duration, 1)
 	}
@@ -147,10 +136,22 @@ func (c *Client) incrementStats(endpoint *url.URL, action string) {
 		c.config.StatsD.Prefix,
 		action)
 
-	tags := append(c.config.StatsD.Tags, PrettyPrintURL(endpoint))
+	tags := append(c.config.StatsD.Tags, "server:"+PrettyPrintURL(endpoint))
 	for _, stats := range c.statsCollection {
 		stats.Increment(bucket, tags, 1)
 	}
+}
+
+// Clone creates a clone of the client and should be used to ensure that
+// the loadbalancing is local to the current GoRoutine
+func (c *Client) Clone() *Client {
+	return &Client{
+		config:                c.config,
+		loadbalancingStrategy: c.loadbalancingStrategy.Clone(),
+		backoffStrategy:       c.backoffStrategy,
+		statsCollection:       c.statsCollection,
+	}
+
 }
 
 // NewClient creates a new instance of the loadbalancing client

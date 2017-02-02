@@ -1,8 +1,8 @@
 package loadbalancer
 
 import (
-	"bytes"
 	"fmt"
+	"net/url"
 )
 
 const (
@@ -12,24 +12,13 @@ const (
 	ErrorUnableToCompleteRequest = "unable to complete request"
 )
 
+// ClientError implements the Error interface and is a generic client error
 type ClientError struct {
-	errors []error
-}
-
-func (s *ClientError) AddError(err error) {
-	s.errors = append(s.errors, err)
-}
-
-func (s *ClientError) Errors() []error {
-	return s.errors
+	Message string
+	URL     url.URL
 }
 
 // Error implements the error interface
 func (s ClientError) Error() string {
-	writer := bytes.NewBufferString("")
-	for _, err := range s.errors {
-		fmt.Fprint(writer, err.Error())
-	}
-
-	return writer.String()
+	return fmt.Sprintf("%v for url: %v", s.Message, s.URL.String())
 }

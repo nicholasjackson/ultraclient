@@ -35,3 +35,11 @@ func TestSetEndpointsGetsRandomEndpoints(t *testing.T) {
 
 	t.Fatal("Should have returned randomised list of endpoints")
 }
+
+func TestCloneReturnsAnewInstance(t *testing.T) {
+	rs := &RandomStrategy{}
+	clone := rs.Clone()
+
+	assert.NotNil(t, clone)
+	assert.NotEqual(t, rs, clone)
+}

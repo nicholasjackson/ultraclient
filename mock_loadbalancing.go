@@ -40,16 +40,19 @@ func (m *MockLoadbalancingStrategy) SetEndpoints(urls []url.URL) {
 	m.Called(urls)
 }
 
+// Length returns the number of endpoints
 func (m *MockLoadbalancingStrategy) Length() int {
 	args := m.Called()
 	return args.Get(0).(int)
 }
 
+// GetEndpoints returns the current endpoint collection
 func (m *MockLoadbalancingStrategy) GetEndpoints() []url.URL {
 	args := m.Called()
 	return args.Get(0).([]url.URL)
 }
 
+// Clone creates a clone of the current object
 func (m *MockLoadbalancingStrategy) Clone() LoadbalancingStrategy {
 	m.Called()
 	return &MockLoadbalancingStrategy{}

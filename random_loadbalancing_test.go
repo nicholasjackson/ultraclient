@@ -1,4 +1,4 @@
-package loadbalancer
+package ultraclient
 
 import (
 	"net/url"

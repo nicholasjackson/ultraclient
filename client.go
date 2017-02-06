@@ -50,9 +50,16 @@ type StatsD struct {
 	Tags   []string
 }
 
-// Client is a loadbalancing client with configurable backoff and loadbalancing strategy,
+//Client is an interface that defines the behaviour of an ultraclient
+type Client interface {
+	Do(work WorkFunc) error
+	RegisterStats(stats Stats)
+	Clone() Client
+}
+
+// ClientImpl is a loadbalancing client with configurable backoff and loadbalancing strategy,
 // Client also implements circuit breaking for fail fast.
-type Client struct {
+type ClientImpl struct {
 	config                Config
 	loadbalancingStrategy LoadbalancingStrategy
 	backoffStrategy       BackoffStrategy
@@ -73,7 +80,7 @@ type Client struct {
 //   response = resp // set the outer variable
 //   return nil
 // }
-func (c *Client) Do(work WorkFunc) error {
+func (c *ClientImpl) Do(work WorkFunc) error {
 	err := c.retry.Run(func() error {
 		return c.doRequest(work)
 	})
@@ -83,11 +90,23 @@ func (c *Client) Do(work WorkFunc) error {
 
 // RegisterStats registers a stats interface with the client, multiple interfaces can
 // be registered with a single client
-func (c *Client) RegisterStats(stats Stats) {
+func (c *ClientImpl) RegisterStats(stats Stats) {
 	c.statsCollection = append(c.statsCollection, stats)
 }
 
-func (c *Client) doRequest(work WorkFunc) error {
+// Clone creates a clone of the client and should be used to ensure that
+// the loadbalancing is local to the current GoRoutine
+func (c *ClientImpl) Clone() Client {
+	return &ClientImpl{
+		config:                c.config,
+		loadbalancingStrategy: c.loadbalancingStrategy.Clone(),
+		backoffStrategy:       c.backoffStrategy,
+		statsCollection:       c.statsCollection,
+		retry:                 c.retry,
+	}
+}
+
+func (c *ClientImpl) doRequest(work WorkFunc) error {
 	endpoint := c.loadbalancingStrategy.NextEndpoint()
 
 	c.incrementStats(&endpoint, StatsCalled)
@@ -104,7 +123,7 @@ func (c *Client) doRequest(work WorkFunc) error {
 	return c.handleError(&endpoint, err)
 }
 
-func (c *Client) handleError(endpoint *url.URL, err error) error {
+func (c *ClientImpl) handleError(endpoint *url.URL, err error) error {
 	switch err {
 	case hystrix.ErrTimeout:
 		c.incrementStats(endpoint, StatsTimeout)
@@ -120,7 +139,7 @@ func (c *Client) handleError(endpoint *url.URL, err error) error {
 	}
 }
 
-func (c *Client) timingStats(endpoint *url.URL, duration time.Duration, action string) {
+func (c *ClientImpl) timingStats(endpoint *url.URL, duration time.Duration, action string) {
 	bucket := fmt.Sprintf("%v.%v",
 		c.config.StatsD.Prefix,
 		action)
@@ -131,7 +150,7 @@ func (c *Client) timingStats(endpoint *url.URL, duration time.Duration, action s
 	}
 }
 
-func (c *Client) incrementStats(endpoint *url.URL, action string) {
+func (c *ClientImpl) incrementStats(endpoint *url.URL, action string) {
 	bucket := fmt.Sprintf("%v.%v",
 		c.config.StatsD.Prefix,
 		action)
@@ -142,24 +161,11 @@ func (c *Client) incrementStats(endpoint *url.URL, action string) {
 	}
 }
 
-// Clone creates a clone of the client and should be used to ensure that
-// the loadbalancing is local to the current GoRoutine
-func (c *Client) Clone() *Client {
-	return &Client{
-		config:                c.config,
-		loadbalancingStrategy: c.loadbalancingStrategy.Clone(),
-		backoffStrategy:       c.backoffStrategy,
-		statsCollection:       c.statsCollection,
-		retry:                 c.retry,
-	}
-
-}
-
 // NewClient creates a new instance of the loadbalancing client
 func NewClient(
 	config Config,
 	loadbalancingStrategy LoadbalancingStrategy,
-	backoffStrategy BackoffStrategy) *Client {
+	backoffStrategy BackoffStrategy) Client {
 
 	loadbalancingStrategy.SetEndpoints(config.Endpoints)
 
@@ -167,7 +173,7 @@ func NewClient(
 		config.Retries = loadbalancingStrategy.Length() - 1
 	}
 
-	client := &Client{
+	client := &ClientImpl{
 		config:                config,
 		loadbalancingStrategy: loadbalancingStrategy,
 		backoffStrategy:       backoffStrategy,

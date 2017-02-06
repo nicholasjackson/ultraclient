@@ -11,5 +11,3 @@ import:
   - mock
 - package: github.com/DataDog/datadog-go
   version: ^1.0.0
-  subpackages:
-  - statsd

@@ -1,6 +1,10 @@
 package ultraclient
 
-import "github.com/stretchr/testify/mock"
+import (
+	"net/url"
+
+	"github.com/stretchr/testify/mock"
+)
 
 // MockClient implements a mock implementation of the ultraclient
 type MockClient struct {
@@ -8,8 +12,14 @@ type MockClient struct {
 }
 
 // Do is the mock execution of the Do method
+// mockClient.On("Do").Return(error, url)
 func (m *MockClient) Do(work WorkFunc) error {
 	args := m.Called(work)
+
+	if len(args) > 1 {
+		return work(args.Get(1).(url.URL))
+	}
+
 	return args.Error(0)
 }
 

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-var client *Client
+var client *ClientImpl
 var loadbalancingStrategy MockLoadbalancingStrategy
 var backoffStrategy MockBackoffStrategy
 var mockStats MockStats
@@ -67,7 +67,7 @@ func setupClient(retryCount int) {
 		},
 		&loadbalancingStrategy,
 		&backoffStrategy,
-	)
+	).(*ClientImpl)
 
 	client.RegisterStats(&mockStats)
 
@@ -80,7 +80,7 @@ func TestNewRailsSessionSetsRetriesToURLsLengthIfNotSet(t *testing.T) {
 		Config{RetryDelay: 100 * time.Millisecond},
 		&loadbalancingStrategy,
 		&backoffStrategy,
-	)
+	).(*ClientImpl)
 
 	assert.Equal(t, 1, c.config.Retries)
 }
@@ -91,7 +91,7 @@ func TestNewRailsSessionSetsRetriesIfSet(t *testing.T) {
 		Config{Retries: 3, RetryDelay: 100 * time.Millisecond},
 		&loadbalancingStrategy,
 		&backoffStrategy,
-	)
+	).(*ClientImpl)
 
 	assert.Equal(t, 3, c.config.Retries)
 }
@@ -228,7 +228,7 @@ func TestOpenCircuitIncrementsStats(t *testing.T) {
 
 func TestCloneCreatesACloneOfTheClient(t *testing.T) {
 	setupClient(0)
-	c := client.Clone()
+	c := client.Clone().(*ClientImpl)
 
 	assert.NotEqual(t, client, c)
 	loadbalancingStrategy.AssertCalled(t, "Clone")

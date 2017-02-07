@@ -53,6 +53,7 @@ type StatsD struct {
 //Client is an interface that defines the behaviour of an ultraclient
 type Client interface {
 	Do(work WorkFunc) error
+	UpdateEndpoints([]url.URL)
 	RegisterStats(stats Stats)
 	Clone() Client
 }
@@ -86,6 +87,11 @@ func (c *ClientImpl) Do(work WorkFunc) error {
 	})
 
 	return err
+}
+
+// UpdateEndpoints makes the given endpoints  available to the loadbalancer
+func (c *ClientImpl) UpdateEndpoints(endpoints []url.URL) {
+	c.loadbalancingStrategy.SetEndpoints(endpoints)
 }
 
 // RegisterStats registers a stats interface with the client, multiple interfaces can

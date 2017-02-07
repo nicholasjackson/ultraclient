@@ -23,6 +23,11 @@ func (m *MockClient) Do(work WorkFunc) error {
 	return args.Error(0)
 }
 
+// UpdateEndpoints is a mock execution of the interface method
+func (m *MockClient) UpdateEndpoints(endpoints []url.URL) {
+	m.Called(endpoints)
+}
+
 // Clone is the mock execution of the Clone method, returns self
 func (m *MockClient) Clone() Client {
 	m.Called()

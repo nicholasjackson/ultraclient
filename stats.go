@@ -7,13 +7,22 @@ import (
 )
 
 const (
-	StatsTiming      = "timing"
-	StatsCalled      = "called"
-	StatsSuccess     = "success"
-	StatsRetry       = "retry"
-	StatsError       = "error"
+	//StatsTiming is a statsD tag for timing metrics
+	StatsTiming = "timing"
+	// StatsCalled is a statsD tag to indicate a method has been called
+	StatsCalled = "called"
+	// StatsSuccess is a statsD tag to indicate operational success
+	StatsSuccess = "success"
+	// StatsRetry is a statsD tag to indicate the client will retry
+	StatsRetry = "retry"
+	// StatsError is a statsD tag to indicate that the client has resulted in
+	// an error
+	StatsError = "error"
+	// StatsCircuitOpen is a statsD tag to indicate that the client has an open
+	// circuit
 	StatsCircuitOpen = "circuitopen"
-	StatsTimeout     = "timeout"
+	// StatsTimeout is a statsD tag to indicate that the operation has timed out
+	StatsTimeout = "timeout"
 )
 
 // Stats is an interface which the concrete type will implement in order to send statistics to

@@ -63,5 +63,5 @@ func TestCloneCreatesNewStrategy(t *testing.T) {
 
 	newStrategy := rrStrategy.Clone()
 
-	assert.NotEqual(t, fmt.Sprintf("%p", &rrStrategy), fmt.Sprintf("%p", newStrategy))
+	assert.NotEqual(t, fmt.Sprintf("%p", &rrStrategy), fmt.Sprintf("%p", &newStrategy))
 }

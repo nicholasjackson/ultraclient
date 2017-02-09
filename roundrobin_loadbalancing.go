@@ -33,14 +33,18 @@ func (r *RoundRobinStrategy) SetEndpoints(endpoints []url.URL) {
 	r.endpoints = endpoints
 }
 
+// GetEndpoints returns the next endpoint in the list
 func (r *RoundRobinStrategy) GetEndpoints() []url.URL {
 	return r.endpoints
 }
 
+// Length returns the nuimber of endpoints
 func (r *RoundRobinStrategy) Length() int {
 	return len(r.endpoints)
 }
 
+// Clone creates a clone of this strategy this should be called when creating
+// a new client
 func (r *RoundRobinStrategy) Clone() LoadbalancingStrategy {
 	rs := &RoundRobinStrategy{}
 	rs.SetEndpoints(r.endpoints)

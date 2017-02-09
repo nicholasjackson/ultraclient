@@ -25,14 +25,17 @@ func (r *RandomStrategy) SetEndpoints(endpoints []url.URL) {
 	r.endpoints = endpoints
 }
 
+// GetEndpoints returns a random endpoint
 func (r *RandomStrategy) GetEndpoints() []url.URL {
 	return r.endpoints
 }
 
+// Length returns the number of endpoints
 func (r *RandomStrategy) Length() int {
 	return len(r.endpoints)
 }
 
+// Clone creates a clone of this strategy
 func (r *RandomStrategy) Clone() LoadbalancingStrategy {
 	rs := &RandomStrategy{}
 	rs.SetEndpoints(r.endpoints)

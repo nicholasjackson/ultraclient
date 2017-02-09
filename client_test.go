@@ -101,29 +101,34 @@ func TestDoCallsCommand(t *testing.T) {
 
 	callCount := 0
 
-	client.Do(func(endpoint url.URL) error {
+	err := client.Do(func(endpoint url.URL) error {
 		callCount++
 		return nil
 	})
 
+	assert.Nil(t, err)
 	assert.Equal(t, 1, callCount)
 }
 
 func TestClientCallsLoadBalancer(t *testing.T) {
 	setupClient(0)
 
-	client.Do(func(endpoint url.URL) error {
+	err := client.Do(func(endpoint url.URL) error {
 		return nil
 	})
 
+	assert.Nil(t, err)
 	loadbalancingStrategy.AssertCalled(t, "NextEndpoint")
 }
 
 func TestClientCallIncrementsStats(t *testing.T) {
 	setupClient(0)
-	client.Do(func(endpoint url.URL) error {
+
+	err := client.Do(func(endpoint url.URL) error {
 		return nil
 	})
+
+	assert.Nil(t, err)
 
 	tags := append(client.config.StatsD.Tags, "server:something_3232")
 	mockStats.AssertCalled(t,
@@ -133,9 +138,12 @@ func TestClientCallIncrementsStats(t *testing.T) {
 
 func TestClientCallTimingStats(t *testing.T) {
 	setupClient(0)
-	client.Do(func(endpoint url.URL) error {
+
+	err := client.Do(func(endpoint url.URL) error {
 		return nil
 	})
+
+	assert.Nil(t, err)
 
 	tags := append(client.config.StatsD.Tags, "server:something_3232")
 	mockStats.AssertCalled(t,
@@ -157,9 +165,11 @@ func TestClientRetriesWithDifferentURLAndReturnsError(t *testing.T) {
 
 func TestSuccessIncrementsStats(t *testing.T) {
 	setupClient(0)
-	client.Do(func(endpoint url.URL) error {
+	err := client.Do(func(endpoint url.URL) error {
 		return nil
 	})
+
+	assert.Nil(t, err)
 
 	tags := append(client.config.StatsD.Tags, "server:something_3232")
 	mockStats.AssertCalled(t,
@@ -182,10 +192,13 @@ func TestTimeoutReturnsError(t *testing.T) {
 
 func TestTimeoutIncrementsStats(t *testing.T) {
 	setupClient(0)
-	client.Do(func(endpoint url.URL) error {
+
+	err := client.Do(func(endpoint url.URL) error {
 		time.Sleep(150 * time.Millisecond)
 		return nil
 	})
+
+	assert.Equal(t, ErrorTimeout, err.(ClientError).Message)
 
 	tags := append(client.config.StatsD.Tags, "server:something_3232")
 	mockStats.AssertCalled(t,
@@ -208,10 +221,13 @@ func TestOpenCircuitReturnsError(t *testing.T) {
 
 func TestOpenCircuitIncrementsStats(t *testing.T) {
 	setupClient(5)
-	client.Do(func(endpoint url.URL) error {
+
+	err := client.Do(func(endpoint url.URL) error {
 		time.Sleep(150 * time.Millisecond)
 		return nil
 	})
+
+	assert.Equal(t, ErrorCircuitOpen, err.(ClientError).Message)
 
 	tags1 := append(client.config.StatsD.Tags, "server:something_3232")
 	tags2 := append(client.config.StatsD.Tags, "server:somethingelse_2323")

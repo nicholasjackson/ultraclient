@@ -6,7 +6,7 @@ Ultra client is a wrapper around exisiting packages to provide loadbalancing, ci
 [![CircleCI](https://circleci.com/gh/nicholasjackson/ultraclient.svg?style=svg)](https://circleci.com/gh/nicholasjackson/ultraclient)
 
 ## Usage
-
+First create the ultraclient instance
 ```go
 lb := ultraclient.RoundRobinStrategy{}
 bs := ultraclient.ExponentialBackoff{}
@@ -32,3 +32,22 @@ client := ultraclient.NewClient(client, &lb, &bs)
 client.RegisterStats(stats)
 ```
 
+Then you can use it like so, this example shows how to use ultraclient with the http.Client
+
+```go
+
+// When Do is called ultraclient will call the passed function with a url which has been returned from the loadbalancer
+client.Do(func(uri string) error {
+  resp, err := http.DefaultClient().Get(uri)
+  if err != nil {
+  	// If an error is returned ultraclient will re call the function based on the backoff and loadbalancer
+	// configuration.
+	// Should a particular uri raise so many errors that it open the circuit breaker then this uri will be 
+	// removed from the load balancer and will not be used for future calls until the circuit half opens again.
+  	return err
+  }
+  defer resp.Body.Close()
+  ... do stuff
+  return nil
+})
+```
